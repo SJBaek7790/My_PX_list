@@ -27,6 +27,7 @@ airtable_css = """
 st.markdown(airtable_css, unsafe_allow_html=True)
 
 # 2. 데이터 로드 (CSV 파일 연동)
+# 2. 데이터 로드 (CSV 파일 연동)
 @st.cache_data
 def load_data():
     try:
@@ -36,11 +37,16 @@ def load_data():
         # 컬럼명 공백 제거 및 정문화
         df.columns = [str(c).strip() for c in df.columns]
         
+        # 컬럼 중복 방지: 이미 'price'가 있고 '군마트가격(원)'도 있다면 'price'를 'internet_price'로 변경
+        if 'price' in df.columns and '군마트가격(원)' in df.columns:
+            df = df.rename(columns={'price': 'internet_price'})
+            
         # 컬럼명 매핑 (KOR -> ENG)
-        # CSV의 컬럼: vendor, name, spec, price, image_url, category, 검색_쿼리, 추정_인터넷총가, 표본수, 상태, 최저가_링크, 군마트가격(원)
         rename_map = {
-            '군마트가격(원)': 'price',  # 이 컬럼이 실제 가격인 경우 덮어쓰기
+            '군마트가격(원)': 'price',
             '비고': 'note',
+            '이미지URL': 'image_url',
+            '이미지': 'image_url'
         }
         df = df.rename(columns=rename_map)
         
@@ -50,8 +56,9 @@ def load_data():
                 df[col] = '-'
         
         # 데이터 타입 및 결측치 정제
-        df['name'] = df['name'].fillna('품목 불명')
+        # pd.to_numeric이 시리즈를 받도록 보장 (중복 컬럼 문제 해결됨)
         df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0).astype(int)
+        df['name'] = df['name'].fillna('품목 불명')
         df['category'] = df['category'].fillna('기타')
         df['spec'] = df['spec'].fillna('-')
         df['note'] = df['note'].fillna('-')
