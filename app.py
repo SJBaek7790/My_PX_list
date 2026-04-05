@@ -84,7 +84,7 @@ def show_detail_modal(item):
     # 상단 이미지 컨테이너
     img_placeholder = "https://via.placeholder.com/600x400?text=No+Image"
     img_url = item['image_url'] if pd.notna(item['image_url']) and str(item['image_url']).startswith('http') else img_placeholder
-    st.image(img_url, use_container_width=True, caption=item['name'])
+    st.image(img_url, width='stretch', caption=item['name'])
     
     # 상세 정보 HTML (들여쓰기 제거로 렌더링 문제 해결)
     html_content = f"""<div style="background-color: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #e1e4e8;">
@@ -112,14 +112,15 @@ st.title("PX 품목 검색")
 search_query = st.text_input("상품 검색", placeholder="상품명 입력...")
 
 # 사이드바 카테고리/서브카테고리 필터
-categories = ["전체"] + sorted(df['category'].unique().tolist())
+categories = ["전체"] + sorted([str(x) for x in df['category'].unique()])
 selected_category = st.sidebar.selectbox("카테고리 선택", categories)
 
 subcategories = ["전체"]
 if selected_category != "전체":
-    subcategories += sorted(df[df['category'] == selected_category]['subcategory'].unique().tolist())
+    sub_list = df[df['category'] == selected_category]['subcategory'].unique()
+    subcategories += sorted([str(x) for x in sub_list])
 else:
-    subcategories += sorted(df['subcategory'].unique().tolist())
+    subcategories += sorted([str(x) for x in df['subcategory'].unique()])
 selected_subcategory = st.sidebar.selectbox("서브카테고리 선택", subcategories)
 
 # 데이터 필터링
@@ -137,7 +138,7 @@ st.caption(f"총 {len(filtered_df)}개의 품목이 있습니다. 터치 시 상
 # 서브카테고리 포함하여 표시
 event = st.dataframe(
     filtered_df[['category', 'subcategory', 'name', 'PX_price', 'internet_price', 'discount_rate']], 
-    use_container_width=True,
+    width='stretch',
     hide_index=True,
     on_select="rerun", 
     selection_mode="single-row"
