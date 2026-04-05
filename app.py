@@ -50,7 +50,7 @@ def load_data():
         df = df.rename(columns=rename_map)
         
         # 필수 컬럼 존재 여부 확인 및 기본값 생성
-        for col in ['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'spec', 'note', 'image_url', 'internet_link']:
+        for col in ['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'subcategory', 'spec', 'note', 'image_url', 'internet_link']:
             if col not in df.columns:
                 df[col] = '-'
         
@@ -60,6 +60,7 @@ def load_data():
         df['discount_rate'] = pd.to_numeric(df['discount_rate'], errors='coerce').fillna(0)
         df['name'] = df['name'].fillna('품목 불명')
         df['category'] = df['category'].fillna('기타')
+        df['subcategory'] = df['subcategory'].fillna('-')
         df['spec'] = df['spec'].fillna('-')
         df['note'] = df['note'].fillna('-')
         df['image_url'] = df['image_url'].fillna('https://via.placeholder.com/600x400?text=No+Image')
@@ -90,7 +91,7 @@ def show_detail_modal(item):
 <h2 style="color: #1b61c9; margin-bottom: 4px;">{item['name']}</h2>
 <div style="font-size: 24px; font-weight: 700; color: #181d26; margin-bottom: 16px;">{item['PX_price']:,}원</div>
 <div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px; font-size: 14px; line-height: 1.6;">
-<div style="color: #6a737d; font-weight: 600;">카테고리</div><div style="color: #181d26;">{item['category']}</div>
+<div style="color: #6a737d; font-weight: 600;">카테고리</div><div style="color: #181d26;">{item['category']} ({item['subcategory']})</div>
 <div style="color: #6a737d; font-weight: 600;">인터넷가</div><div style="color: #d73a49; text-decoration: line-through;">{item['internet_price']:,}원</div>
 <div style="color: #1b61c9; font-weight: 600;">할인율</div><div style="color: #1b61c9; font-weight: 700;">{item['discount_rate']}%</div>
 <div style="color: #6a737d; font-weight: 600;">규격</div><div style="color: #181d26;">{item['spec']}</div>
@@ -110,22 +111,32 @@ st.title("PX 품목 검색")
 # 검색 및 필터 패널
 search_query = st.text_input("상품 검색", placeholder="상품명 입력...")
 
-# 사이드바 카테고리 필터
+# 사이드바 카테고리/서브카테고리 필터
 categories = ["전체"] + sorted(df['category'].unique().tolist())
 selected_category = st.sidebar.selectbox("카테고리 선택", categories)
+
+subcategories = ["전체"]
+if selected_category != "전체":
+    subcategories += sorted(df[df['category'] == selected_category]['subcategory'].unique().tolist())
+else:
+    subcategories += sorted(df['subcategory'].unique().tolist())
+selected_subcategory = st.sidebar.selectbox("서브카테고리 선택", subcategories)
 
 # 데이터 필터링
 filtered_df = df.copy()
 if selected_category != "전체":
     filtered_df = filtered_df[filtered_df['category'] == selected_category]
+if selected_subcategory != "전체":
+    filtered_df = filtered_df[filtered_df['subcategory'] == selected_subcategory]
 if search_query:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_query, case=False, na=False)]
 
 st.caption(f"총 {len(filtered_df)}개의 품목이 있습니다. 터치 시 상세 정보를 확인합니다.")
 
 # 모바일 화면에 맞게 데이터프레임 너비 100% 사용
+# 서브카테고리 포함하여 표시
 event = st.dataframe(
-    filtered_df[['category', 'name', 'PX_price', 'internet_price', 'discount_rate']], 
+    filtered_df[['category', 'subcategory', 'name', 'PX_price', 'internet_price', 'discount_rate']], 
     use_container_width=True,
     hide_index=True,
     on_select="rerun", 
