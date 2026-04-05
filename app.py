@@ -30,11 +30,21 @@ st.markdown(airtable_css, unsafe_allow_html=True)
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_excel("PX (1).xlsx")
-        # 컬럼명 매핑 (상품명, 가격, 카테고리, 규격, 비고, 이미지URL)
+        # Excel 파일 로드
+        xls = pd.ExcelFile("PX (1).xlsx")
+        sheet_names = xls.sheet_names
+        # 사용자가 언급한 시트가 있으면 사용, 없으면 첫 번째 시트 사용
+        target_sheet = "Results_0405_0506" if "Results_0405_0506" in sheet_names else sheet_names[0]
+        df = pd.read_excel(xls, sheet_name=target_sheet)
+        
+        # 컬럼명 공백 제거 및 정문화
+        df.columns = [str(c).strip() for c in df.columns]
+        
+        # 컬럼명 매핑 (KOR -> ENG)
         rename_map = {
             '상품명': 'name',
             '가격': 'price',
+            '군마트가격(원)': 'price',
             '카테고리': 'category',
             '규격': 'spec',
             '비고': 'note',
@@ -43,20 +53,22 @@ def load_data():
         }
         df = df.rename(columns=rename_map)
         
-        # 데이터 정제
+        # 필수 컬럼 존재 여부 확인 및 기본값 생성 (KeyError 방지)
+        for col in ['name', 'price', 'category', 'spec', 'note', 'image_url']:
+            if col not in df.columns:
+                df[col] = '-'
+        
+        # 데이터 타입 및 결측치 정제
         df['name'] = df['name'].fillna('품목 불명')
         df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0).astype(int)
         df['category'] = df['category'].fillna('기타')
         df['spec'] = df['spec'].fillna('-')
         df['note'] = df['note'].fillna('-')
         
-        # 이미지 URL (원본 데이터에 없을 경우 플레이스홀더 사용)
-        if 'image_url' not in df.columns:
-            df['image_url'] = 'https://via.placeholder.com/300'
-            
         return df
     except Exception as e:
         st.error(f"Excel 파일 로드 오류: {e}")
+        # 오류 시 최소한의 컬럼을 가진 빈 데이터프레임 반환
         return pd.DataFrame(columns=['name', 'price', 'category', 'spec', 'note', 'image_url'])
 
 df = load_data()
