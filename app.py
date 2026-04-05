@@ -43,25 +43,30 @@ def load_data():
             
         # 컬럼명 매핑 (KOR -> ENG)
         rename_map = {
-            '군마트가격(원)': 'price',
+            '군마트가격(원)': 'PX_price',
+            '추정_인터넷총가': 'internet_price',
+            '할인율(%)': 'discount_rate',
+            '최저가_링크': 'internet_link',
             '비고': 'note',
             '이미지URL': 'image_url',
             '이미지': 'image_url'
         }
         df = df.rename(columns=rename_map)
         
-        # 필수 컬럼 존재 여부 확인 및 기본값 생성 (KeyError 방지)
-        for col in ['name', 'price', 'category', 'spec', 'note', 'image_url']:
+        # 필수 컬럼 존재 여부 확인 및 기본값 생성
+        for col in ['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'spec', 'note', 'image_url', 'internet_link']:
             if col not in df.columns:
                 df[col] = '-'
         
         # 데이터 타입 및 결측치 정제
-        # pd.to_numeric이 시리즈를 받도록 보장 (중복 컬럼 문제 해결됨)
-        df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0).astype(int)
+        df['PX_price'] = pd.to_numeric(df['PX_price'], errors='coerce').fillna(0).astype(int)
+        df['internet_price'] = pd.to_numeric(df['internet_price'], errors='coerce').fillna(0).astype(int)
+        df['discount_rate'] = pd.to_numeric(df['discount_rate'], errors='coerce').fillna(0)
         df['name'] = df['name'].fillna('품목 불명')
         df['category'] = df['category'].fillna('기타')
-        df['spec'] = df['spec'].fillna('-')
-        df['note'] = df['note'].fillna('-')
+        
+        # 카테고리별 정렬 (기본 설정)
+        df = df.sort_values(by='category').reset_index(drop=True)
         
         return df
     except Exception as e:
@@ -75,34 +80,29 @@ df = load_data()
 # @st.dialog 데코레이터를 사용하면 이 함수가 호출될 때 화면 위에 팝업이 생성됩니다.
 @st.dialog("상품 상세 정보")
 def show_detail_modal(item):
-    # 상단 이미지 컨테이너 (고급스러운 여백과 테두리)
+    # 상단 이미지 컨테이너
     img_placeholder = "https://via.placeholder.com/600x400?text=No+Image"
     img_url = item['image_url'] if pd.notna(item['image_url']) and str(item['image_url']).startswith('http') else img_placeholder
-    
-    # 이미지 중앙 배치 및 줌 효과 유도
     st.image(img_url, use_container_width=True, caption=item['name'])
     
-    # 상세 텍스트 정보
-    st.markdown(f"""
-    <div class="detail-card" style="background-color: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #e1e4e8;">
-        <h2 style="color: #1b61c9; margin-bottom: 4px;">{item['name']}</h2>
-        <div style="font-size: 24px; font-weight: 700; color: #181d26; margin-bottom: 16px;">{item['price']:,}원</div>
-        
-        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px; font-size: 14px; line-height: 1.6;">
-            <div style="color: #6a737d; font-weight: 600;">카테고리</div>
-            <div style="color: #181d26;">{item['category']}</div>
-            
-            <div style="color: #6a737d; font-weight: 600;">규격</div>
-            <div style="color: #181d26;">{item['spec']}</div>
-            
-            <div style="color: #6a737d; font-weight: 600;">비고</div>
-            <div style="color: #181d26;">{item['note']}</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # 상세 정보 HTML (들여쓰기 제거로 렌더링 문제 해결)
+    html_content = f"""<div style="background-color: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #e1e4e8;">
+<h2 style="color: #1b61c9; margin-bottom: 4px;">{item['name']}</h2>
+<div style="font-size: 24px; font-weight: 700; color: #181d26; margin-bottom: 16px;">{item['PX_price']:,}원</div>
+<div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px; font-size: 14px; line-height: 1.6;">
+<div style="color: #6a737d; font-weight: 600;">카테고리</div><div style="color: #181d26;">{item['category']}</div>
+<div style="color: #6a737d; font-weight: 600;">인터넷가</div><div style="color: #d73a49; text-decoration: line-through;">{item['internet_price']:,}원</div>
+<div style="color: #1b61c9; font-weight: 600;">할인율</div><div style="color: #1b61c9; font-weight: 700;">{item['discount_rate']}%</div>
+<div style="color: #6a737d; font-weight: 600;">규격</div><div style="color: #181d26;">{item['spec']}</div>
+<div style="color: #6a737d; font-weight: 600;">비고</div><div style="color: #181d26;">{item['note']}</div>
+</div>
+</div>"""
+    st.markdown(html_content, unsafe_allow_html=True)
     
-    if st.button("구매 페이지로 이동"):
-        st.write("구매 링크 연결 필요")
+    if pd.notna(item['internet_link']) and str(item['internet_link']).startswith('http'):
+        st.link_button("인터넷 최저가 보기", item['internet_link'])
+    else:
+        st.button("인터넷 링크 없음", disabled=True)
 
 # 4. 메인 화면 (모바일 리스트 뷰)
 st.title("PX 품목 검색")
@@ -125,7 +125,7 @@ st.caption(f"총 {len(filtered_df)}개의 품목이 있습니다. 터치 시 상
 
 # 모바일 화면에 맞게 데이터프레임 너비 100% 사용
 event = st.dataframe(
-    filtered_df[['category', 'name', 'price']], 
+    filtered_df[['category', 'name', 'PX_price', 'internet_price', 'discount_rate']], 
     use_container_width=True,
     hide_index=True,
     on_select="rerun", 
