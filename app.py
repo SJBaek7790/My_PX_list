@@ -26,30 +26,21 @@ airtable_css = """
 """
 st.markdown(airtable_css, unsafe_allow_html=True)
 
-# 2. 데이터 로드 (Excel 파일 연동)
+# 2. 데이터 로드 (CSV 파일 연동)
 @st.cache_data
 def load_data():
     try:
-        # Excel 파일 로드
-        xls = pd.ExcelFile("PX (1).xlsx")
-        sheet_names = xls.sheet_names
-        # 사용자가 언급한 시트가 있으면 사용, 없으면 첫 번째 시트 사용
-        target_sheet = "Results_0405_0506" if "Results_0405_0506" in sheet_names else sheet_names[0]
-        df = pd.read_excel(xls, sheet_name=target_sheet)
+        # CSV 파일 로드 (Excel보다 안정적)
+        df = pd.read_csv("PX_data.csv")
         
         # 컬럼명 공백 제거 및 정문화
         df.columns = [str(c).strip() for c in df.columns]
         
         # 컬럼명 매핑 (KOR -> ENG)
+        # CSV의 컬럼: vendor, name, spec, price, image_url, category, 검색_쿼리, 추정_인터넷총가, 표본수, 상태, 최저가_링크, 군마트가격(원)
         rename_map = {
-            '상품명': 'name',
-            '가격': 'price',
-            '군마트가격(원)': 'price',
-            '카테고리': 'category',
-            '규격': 'spec',
+            '군마트가격(원)': 'price',  # 이 컬럼이 실제 가격인 경우 덮어쓰기
             '비고': 'note',
-            '이미지URL': 'image_url',
-            '이미지': 'image_url'
         }
         df = df.rename(columns=rename_map)
         
@@ -67,7 +58,7 @@ def load_data():
         
         return df
     except Exception as e:
-        st.error(f"Excel 파일 로드 오류: {e}")
+        st.error(f"CSV 파일 로드 오류: {e}")
         # 오류 시 최소한의 컬럼을 가진 빈 데이터프레임 반환
         return pd.DataFrame(columns=['name', 'price', 'category', 'spec', 'note', 'image_url'])
 
