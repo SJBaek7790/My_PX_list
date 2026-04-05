@@ -53,6 +53,10 @@ def load_data():
         }
         df = df.rename(columns=rename_map)
         
+        # 중복 컬럼 제거 (rename 과정에서 발생할 수 있는 'internet_price' 중복 등 해결)
+        # 매우 중요: pd.to_numeric 호출 전에 실행되어야 함
+        df = df.loc[:, ~df.columns.duplicated()].copy()
+        
         # 필수 컬럼 존재 여부 확인 및 기본값 생성
         for col in ['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'spec', 'note', 'image_url', 'internet_link']:
             if col not in df.columns:
@@ -68,9 +72,6 @@ def load_data():
         df['note'] = df['note'].fillna('-')
         df['image_url'] = df['image_url'].fillna('https://via.placeholder.com/600x400?text=No+Image')
         df['internet_link'] = df['internet_link'].fillna('-')
-        
-        # 중복 컬럼 제거 (혹시라도 발생할 경우를 대비하여 name, PX_price 등 첫 번째 것만 유지)
-        df = df.loc[:, ~df.columns.duplicated()].copy()
         
         # 카테고리별 정렬 (기본 설정)
         df = df.sort_values(by='category').reset_index(drop=True)
