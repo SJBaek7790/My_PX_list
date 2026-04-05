@@ -64,6 +64,13 @@ def load_data():
         df['discount_rate'] = pd.to_numeric(df['discount_rate'], errors='coerce').fillna(0)
         df['name'] = df['name'].fillna('품목 불명')
         df['category'] = df['category'].fillna('기타')
+        df['spec'] = df['spec'].fillna('-')
+        df['note'] = df['note'].fillna('-')
+        df['image_url'] = df['image_url'].fillna('https://via.placeholder.com/600x400?text=No+Image')
+        df['internet_link'] = df['internet_link'].fillna('-')
+        
+        # 중복 컬럼 제거 (혹시라도 발생할 경우를 대비하여 name, PX_price 등 첫 번째 것만 유지)
+        df = df.loc[:, ~df.columns.duplicated()].copy()
         
         # 카테고리별 정렬 (기본 설정)
         df = df.sort_values(by='category').reset_index(drop=True)
@@ -71,8 +78,8 @@ def load_data():
         return df
     except Exception as e:
         st.error(f"CSV 파일 로드 오류: {e}")
-        # 오류 시 최소한의 컬럼을 가진 빈 데이터프레임 반환
-        return pd.DataFrame(columns=['name', 'price', 'category', 'spec', 'note', 'image_url'])
+        # 오류 시 모든 필수 컬럼을 가진 빈 데이터프레임 반환 (KeyError 방지)
+        return pd.DataFrame(columns=['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'spec', 'note', 'image_url', 'internet_link'])
 
 df = load_data()
 
