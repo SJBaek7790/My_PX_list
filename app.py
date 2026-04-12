@@ -92,7 +92,7 @@ def show_detail_modal(item):
 <div style="font-size: 24px; font-weight: 700; color: #181d26; margin-bottom: 16px;">{item['PX_price']:,}원</div>
 <div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px; font-size: 14px; line-height: 1.6;">
 <div style="color: #6a737d; font-weight: 600;">카테고리</div><div style="color: #181d26;">{item['category']} ({item['subcategory']})</div>
-<div style="color: #6a737d; font-weight: 600;">인터넷가</div><div style="color: #d73a49; text-decoration: line-through;">{item['internet_price']:,}원</div>
+<div style="color: #6a737d; font-weight: 600;">평균 인터넷가</div><div style="color: #d73a49; text-decoration: line-through;">{item['internet_price']:,}원</div>
 <div style="color: #1b61c9; font-weight: 600;">할인율</div><div style="color: #1b61c9; font-weight: 700;">{item['discount_rate']}%</div>
 <div style="color: #6a737d; font-weight: 600;">규격</div><div style="color: #181d26;">{item['spec']}</div>
 <div style="color: #6a737d; font-weight: 600;">비고</div><div style="color: #181d26;">{item['note']}</div>
@@ -101,7 +101,7 @@ def show_detail_modal(item):
     st.markdown(html_content, unsafe_allow_html=True)
     
     if pd.notna(item['internet_link']) and str(item['internet_link']).startswith('http'):
-        st.link_button("인터넷 최저가 보기", item['internet_link'])
+        st.link_button("인터넷 링크 보기", item['internet_link'])
     else:
         st.button("인터넷 링크 없음", disabled=True)
 
@@ -113,7 +113,7 @@ def show_detail_modal(item):
             
             error_type = st.radio(
                 "어떤 부분에 오류가 있나요?",
-                ["💰 가격이 틀림 (PX가, 인터넷최저가 등)", "📂 카테고리가 이상함", "🔗 인터넷 최저가 링크 오류", "🤔 기타 오류"]
+                ["💰 가격이 틀림 (PX가, 인터넷최저가 등)", "📂 카테고리가 이상함", "🔗 인터넷 링크 오류", "🤔 기타 오류"]
             )
             error_detail = st.text_area("상세 내용 (선택사항)", placeholder="수정되어야 할 올바른 정보를 적어주시면 큰 도움이 됩니다!")
             
