@@ -73,7 +73,7 @@ def load_data():
     except Exception as e:
         st.error(f"Excel 파일 로드 오류: {e}")
         # 오류 시 모든 필수 컬럼을 가진 빈 데이터프레임 반환 (KeyError 방지)
-        return pd.DataFrame(columns=['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'spec', 'note', 'image_url', 'internet_link'])
+        return pd.DataFrame(columns=['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'subcategory', 'spec', 'note', 'image_url', 'internet_link'])
 
 df = load_data()
 
