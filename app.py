@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 
 st.set_page_config(layout="centered") # 모바일은 centered가 안정적입니다.
 
@@ -27,12 +28,11 @@ airtable_css = """
 st.markdown(airtable_css, unsafe_allow_html=True)
 
 # 2. 데이터 로드 (CSV 파일 연동)
-# 2. 데이터 로드 (CSV 파일 연동)
 @st.cache_data
 def load_data():
     try:
-        # CSV 파일 로드 (Excel보다 안정적)
-        df = pd.read_csv("PX_data.csv")
+        # Excel 파일 로드
+        df = pd.read_excel("PX (1).xlsx")
         
         # 컬럼명 공백 제거 및 정문화
         df.columns = [str(c).strip() for c in df.columns]
@@ -71,7 +71,7 @@ def load_data():
         
         return df
     except Exception as e:
-        st.error(f"CSV 파일 로드 오류: {e}")
+        st.error(f"Excel 파일 로드 오류: {e}")
         # 오류 시 모든 필수 컬럼을 가진 빈 데이터프레임 반환 (KeyError 방지)
         return pd.DataFrame(columns=['name', 'PX_price', 'internet_price', 'discount_rate', 'category', 'spec', 'note', 'image_url', 'internet_link'])
 
@@ -104,6 +104,44 @@ def show_detail_modal(item):
         st.link_button("인터넷 최저가 보기", item['internet_link'])
     else:
         st.button("인터넷 링크 없음", disabled=True)
+
+    st.divider()
+    
+    with st.expander("🚨 상품 정보 오류 제보"):
+        with st.form(key="report_error_form"):
+            st.markdown(f"**{item['name']}** 상품에 대해 제보합니다.")
+            
+            error_type = st.radio(
+                "어떤 부분에 오류가 있나요?",
+                ["💰 가격이 틀림 (PX가, 인터넷최저가 등)", "📂 카테고리가 이상함", "🔗 인터넷 최저가 링크 오류", "🤔 기타 오류"]
+            )
+            error_detail = st.text_area("상세 내용 (선택사항)", placeholder="수정되어야 할 올바른 정보를 적어주시면 큰 도움이 됩니다!")
+            
+            submit_btn = st.form_submit_button("제보 보내기 🚀")
+            
+            if submit_btn:
+                TELEGRAM_BOT_TOKEN = "8779140139:AAH7OB7NPLJ_80KwF4TnZBVg5bF3EZTmdOc"
+                TELEGRAM_CHAT_ID = "6951708663"
+                
+                if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+                    st.warning("⚠️ 테스트 작동: UI는 정상입니다. 실제 텔레그램 연동 설정을 코드로 완료해주세요.")
+                else:
+                    try:
+                        msg_text = f"🚨 **오류 제보 도착!**\n\n" \
+                                   f"📦 **상품:** {item['name']}\n" \
+                                   f"📌 **유형:** {error_type}\n" \
+                                   f"📝 **설명:** {error_detail if error_detail else '없음'}"
+                        
+                        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg_text}
+                        
+                        response = requests.post(url, json=payload, timeout=5)
+                        if response.status_code == 200:
+                            st.success("소중한 제보 감사합니다! 빠르게 수정하겠습니다 👍")
+                        else:
+                            st.error(f"전송 에러가 발생했습니다: {response.text}")
+                    except Exception as e:
+                        st.error("내부 통신 오류가 발생했습니다.")
 
 # 4. 메인 화면 (모바일 리스트 뷰)
 st.title("PX 품목 검색")
