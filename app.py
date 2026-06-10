@@ -32,7 +32,7 @@ st.markdown(airtable_css, unsafe_allow_html=True)
 def load_data():
     try:
         # Excel 파일 로드
-        df = pd.read_excel("PX (1).xlsx")
+        df = pd.read_excel("PX.xlsx")
         
         # 컬럼명 공백 제거 및 정문화
         df.columns = [str(c).strip() for c in df.columns]
